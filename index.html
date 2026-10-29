@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPR 마스터 게임 - 보건 수업 라이프세이버</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 아이콘 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        purple: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f3ff;
+            user-select: none;
+        }
+        /* 드래그 앤 드롭 애니메이션 및 스타일 */
+        .draggable-item {
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+        .draggable-item.dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+        .drag-over {
+            border-style: solid !important;
+            border-color: #7c3aed !important;
+            background-color: #ede9fe !important;
+        }
+        /* 카드 플립/전환 효과 */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-purple-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-purple-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="goToHome()">
+                <div class="bg-red-500 text-white p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-md">
+                    <i class="fa-solid fa-heart-pulse text-xl animate-pulse"></i>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight">CPR 마스터</span>
+            </div>
+            <!-- Stage Status Badges -->
+            <div id="stage-badges" class="hidden sm:flex gap-2 text-xs font-semibold">
+                <span id="badge-stage1" class="px-3 py-1 rounded-full bg-purple-900/50 text-purple-200">1단계: 카드학습</span>
+                <span id="badge-stage2" class="px-3 py-1 rounded-full bg-purple-900/50 text-purple-200">2단계: 순서퍼즐</span>
+                <span id="badge-stage3" class="px-3 py-1 rounded-full bg-purple-900/50 text-purple-200">3단계: O/X 퀴즈</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow flex flex-col justify-center">
+
+        <!-- 화면 0: 메인 홈 화면 -->
+        <section id="screen-home" class="fade-in bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-purple-100 text-center">
+            <div class="w-24 h-24 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner text-5xl">
+                🚑
+            </div>
+            <h1 class="text-3xl md:text-4xl font-black text-purple-900 mb-3">생명을 살리는 골든타임!</h1>
+            <p class="text-slate-600 mb-8 text-lg">심폐소생술(CPR) 8단계를 배우고 응급 상황에서 생명을 구하는 CPR 마스터가 되어보세요.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-left">
+                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                    <div class="text-purple-700 font-bold text-lg mb-1">1단계: 학습 모드 📖</div>
+                    <p class="text-sm text-slate-600">카드 카셀을 넘기며 CPR 8대 단계를 핵심 위주로 익힙니다.</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                    <div class="text-purple-700 font-bold text-lg mb-1">2단계: 순서 퍼즐 🧩</div>
+                    <p class="text-sm text-slate-600">무작위로 섞인 순서를 올바르게 마우스로 드래그합니다.</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                    <div class="text-purple-700 font-bold text-lg mb-1">3단계: 실전 퀴즈 🎯</div>
+                    <p class="text-sm text-slate-600">실생활 응급 상황 검증 퀴즈 8문항을 풀어 정복합니다.</p>
+                </div>
+            </div>
+
+            <button onclick="startStage1()" class="w-full sm:w-auto px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xl rounded-2xl shadow-lg hover:shadow-purple-300/50 transition-all transform hover:-translate-y-1">
+                게임 시작하기 <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </section>
+
+        <!-- 화면 1: 1단계 카드 학습 -->
+        <section id="screen-stage1" class="hidden fade-in space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-purple-100">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full uppercase">STAGE 1</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">CPR 8대 단계 카드 학습</h2>
+                    </div>
+                    <span id="card-counter" class="text-lg font-bold text-purple-700 bg-purple-50 px-4 py-2 rounded-xl border border-purple-200">1 / 8</span>
+                </div>
+
+                <!-- Card Content -->
+                <div class="bg-gradient-to-br from-purple-50 to-white p-8 rounded-2xl border-2 border-purple-200 text-center min-h-[320px] flex flex-col justify-center items-center shadow-inner relative overflow-hidden">
+                    <div id="card-emoji" class="text-7xl mb-4 transform transition-all duration-300">🚨</div>
+                    <div id="card-step" class="text-sm font-extrabold text-purple-600 uppercase tracking-widest mb-1">STEP 1</div>
+                    <h3 id="card-title" class="text-2xl md:text-3xl font-extrabold text-slate-800 mb-4">반응 확인</h3>
+                    <p id="card-desc" class="text-slate-600 md:text-lg max-w-lg leading-relaxed">환자의 어깨를 가볍게 두드리며 "괜찮으세요?"라고 큰 소리로 물어 의식이 있는지 확인합니다.</p>
+                    <div id="card-tip" class="mt-4 text-xs md:text-sm text-purple-700 font-semibold bg-purple-100/70 px-4 py-2 rounded-lg inline-block">
+                        💡 팁: 환자를 세게 흔들면 경추 손상이 올 수 있으니 어깨를 가볍게 두드립니다.
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex justify-between items-center mt-6 gap-4">
+                    <button id="btn-prev-card" onclick="prevCard()" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> 이전
+                    </button>
+                    <button id="btn-next-card" onclick="nextCard()" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transition-all">
+                        다음 <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 화면 2: 2단계 순서 퍼즐 -->
+        <section id="screen-stage2" class="hidden fade-in space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-purple-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full uppercase">STAGE 2</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">CPR 순서 맞추기 퍼즐</h2>
+                    </div>
+                    <p class="text-xs md:text-sm text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
+                        <i class="fa-solid fa-hand-pointer text-purple-500 mr-1"></i> 카드를 마우스로 드래그하여 위/아래 순서를 맞추세요!
+                    </p>
+                </div>
+
+                <!-- Draggable List -->
+                <div id="drag-container" class="space-y-2.5">
+                    <!-- JavaScript dynamically injects items -->
+                </div>
+
+                <div id="puzzle-feedback" class="hidden p-4 rounded-xl text-center font-bold text-sm md:text-base mt-4"></div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="resetPuzzle()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> 다시 섞기
+                    </button>
+                    <button onclick="checkPuzzleAnswer()" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transition-all">
+                        순서 제출하기 <i class="fa-solid fa-check ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 화면 3: 3단계 객관식 퀴즈 -->
+        <section id="screen-stage3" class="hidden fade-in space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-purple-100">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full uppercase">STAGE 3</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">CPR 실전 검증 퀴즈</h2>
+                    </div>
+                    <span id="quiz-progress" class="text-lg font-bold text-purple-700 bg-purple-50 px-4 py-2 rounded-xl border border-purple-200">Q 1 / 8</span>
+                </div>
+
+                <!-- Quiz Question Block -->
+                <div class="mb-6">
+                    <h3 id="quiz-question" class="text-xl md:text-2xl font-bold text-slate-800 leading-snug mb-4">
+                        질문 내용이 여기에 들어갑니다.
+                    </h3>
+                    
+                    <!-- Options Container -->
+                    <div id="quiz-options" class="space-y-3">
+                        <!-- Options generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Quiz Explanation (Shown after selecting an answer) -->
+                <div id="quiz-explanation" class="hidden p-5 rounded-2xl bg-slate-50 border border-slate-200 mb-6 fade-in">
+                    <div id="quiz-result-badge" class="font-bold text-lg mb-1 flex items-center gap-2">
+                        <!-- Correct/Incorrect badge -->
+                    </div>
+                    <p id="quiz-explanation-text" class="text-slate-700 text-sm md:text-base leading-relaxed">
+                        해설 텍스트입니다.
+                    </p>
+                </div>
+
+                <!-- Next Question Button -->
+                <div class="flex justify-end">
+                    <button id="btn-next-quiz" onclick="nextQuizQuestion()" class="hidden px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transition-all">
+                        다음 문제 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 화면 4: 최종 결과 화면 -->
+        <section id="screen-result" class="hidden fade-in bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-purple-100 text-center">
+            <div class="w-24 h-24 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 text-5xl shadow-inner">
+                🏆
+            </div>
+            <h2 class="text-3xl font-black text-purple-900 mb-2">축하합니다! 코스 완료!</h2>
+            <p class="text-slate-600 mb-6">모든 CPR 단계와 실전 퀴즈를 마쳤습니다.</p>
+
+            <div class="bg-purple-50 p-6 rounded-2xl border border-purple-200 max-w-md mx-auto mb-8">
+                <div class="text-slate-500 font-semibold mb-1">최종 CPR 마스터 점수</div>
+                <div id="final-score" class="text-5xl font-black text-purple-700 mb-2">100 / 100</div>
+                <div id="final-title" class="inline-block px-4 py-1.5 bg-purple-200 text-purple-800 font-bold rounded-full text-sm">
+                    🥇 완벽한 CPR 마스터!
+                </div>
+                <div id="final-summary" class="mt-4 text-xs text-slate-500 border-t border-purple-200 pt-3 text-left space-y-1">
+                    <!-- dynamic breakdown -->
+                </div>
+            </div>
+
+            <button onclick="goToHome()" class="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg rounded-2xl shadow-lg transition-all transform hover:-translate-y-1">
+                <i class="fa-solid fa-rotate-left mr-2"></i> 다시 도전하기
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 px-4">
+        <p>본 콘텐츠는 중·고등학생 보건 교육용 심폐소생술(CPR) 학습 게임입니다.</p>
+        <p class="mt-1 text-slate-500">ⓒ CPR Master Game - Emergency Life Support Education</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        /* ==========================================================================
+           데이터 정의 (CPR 8대 단계 & 퀴즈 데이터)
+           ========================================================================== */
+        const cprSteps = [
+            { id: 1, step: "1단계", title: "반응 확인", emoji: "🗣️", desc: "환자의 어깨를 가볍게 두드리며 \"괜찮으세요?\"라고 큰 소리로 물어 의식이 있는지 확인합니다.", tip: "경추 손상이 있을 수 있으므로 절대로 환자를 세게 흔들면 안 됩니다." },
+            { id: 2, step: "2단계", title: "119 신고 및 AED 요청", emoji: "📱", desc: "주변 사람 중 특정 인물을 지목하여 119 신고와 자동심장충격기(AED)를 가져와 달라고 요청합니다.", tip: "\"거기 안경 쓴 남학생분 119에 신고해주시고, 빨간 티 입은 분 AED 가져다주세요!\"처럼 지목하세요." },
+            { id: 3, step: "3단계", title: "호흡 확인", emoji: "🫁", desc: "환자의 가슴과 배가 움직이는지, 호흡이 정상인지 10초 이내로 관찰하여 확인합니다.", tip: "비정상적인 헐떡임(심정지 호흡)은 정상 호흡이 아닙니다!" },
+            { id: 4, step: "4단계", title: "가슴 압박 30회", emoji: "💓", desc: "가슴 뼈 아래쪽 1/2 지점에 깍지 낀 손을 대고, 분당 100~120회 속도로 깊이 5cm로 30회 강하고 빠르게 압박합니다.", tip: "팔꿈치를 펴고 환자의 가슴과 수직을 이룬 상태에서 체중을 실어 압박합니다." },
+            { id: 5, step: "5단계", title: "기도 개방", emoji: "🗣️", desc: "머리를 뒤로 젖히고 턱을 들어 올려(머리젖힘-턱올리기법) 공기가 다니는 길(기도)을 열어줍니다.", tip: "목뼈 손상이 의심되는 경우는 턱만 살짝 들어 올립니다." },
+            { id: 6, step: "6단계", title: "인공호흡 2회", emoji: "🌬️", desc: "환자의 코를 막고 입을 밀착시켜 가슴이 올라올 정도로 1초 동안 숨을 총 2회 불어넣습니다.", tip: "가슴이 부풀어 오르는지 눈으로 확인하며 과도한 호흡을 피합니다." },
+            { id: 7, step: "7단계", title: "가슴 압박 및 인공호흡 반복", emoji: "🔄", desc: "가슴 압박 30회와 인공호흡 2회의 비율(30:2)을 119 구급대가 도착할 때까지 지속적으로 반복합니다.", tip: "구급대원 도착 또는 환자가 회복될 때까지 멈추지 마세요." },
+            { id: 8, step: "8단계", title: "AED(자동심장충격기) 사용", emoji: "⚡", desc: "AED가 도착하면 전원을 켜고, 안내 음성에 따라 패드를 부착한 뒤 제세동 지시에 따릅니다.", tip: "제세동 버튼을 누르기 전 \"모두 물러나세요!\"라고 크게 외칩니다." }
+        ];
+
+        const quizData = [
+            {
+                q: "쓰러진 사람을 발견했을 때 가장 먼저 실시해야 하는 행동은 무엇인가요?",
+                options: ["곧바로 인공호흡 실시하기", "어깨를 두드리며 의식 및 반응 확인하기", "곧바로 물을 먹여 의식 되찾기", "상체를 일으켜 세우기"],
+                answer: 1,
+                explanation: "환자를 발견하면 가장 먼저 어깨를 가볍게 두드리며 큰 소리로 물어 반응(의식)을 확인해야 합니다."
+            },
+            {
+                q: "주변 사람에게 119 신고를 부탁할 때 가장 바른 방법은 무엇인가요?",
+                options: ["\"누구든 빨리 119에 신고 좀 해주세요!\" 하고 소리친다.", "\"거기 파란색 후드티 입은 학생분, 119에 신고해주세요!\"처럼 특정인을 지목한다.", "아무에게도 말하지 않고 혼자서 끝까지 처치한다.", "신고는 구급차가 올 때까지 미룬다."],
+                answer: 1,
+                explanation: "지목하지 않고 소리치면 '방관자 효과'로 인해 아무도 신고하지 않을 수 있습니다. 인상착의를 말하며 특정인을 지목하세요."
+            },
+            {
+                q: "성인 CPR 기준 가슴 압박 위치와 권장 깊이는 얼마인가요?",
+                options: ["명치 바로 아래, 깊이 1cm", "가슴중앙(가슴뼈 아래쪽 1/2), 깊이 약 5cm", "왼쪽 젖가슴 부위, 깊이 10cm", "갈비뼈 끝부분, 깊이 2cm"],
+                answer: 1,
+                explanation: "가슴 중앙(가슴뼈 아래쪽 1/2)을 약 5cm 깊이(소아는 4~5cm)로 강하게 눌러야 심장에 충분한 혈액 순환이 이루어집니다."
+            },
+            {
+                q: "가슴 압박 속도로 올바른 것은 무엇인가요?",
+                options: ["분당 60회 미만 (천천히)", "분당 100~120회 (1초에 약 2회 속도)", "분당 200회 이상 (가능한 최대로 빠르고 얕게)", "속도는 상관없이 일정하게만 눌러준다."],
+                answer: 1,
+                explanation: "분당 100~120회의 속도(인기곡 '아기상어' 템포)로 빠르고 일정하게 압박해야 효과적입니다."
+            },
+            {
+                q: "CPR 진행 시 가슴 압박과 인공호흡의 권장 횟수 비율은 얼마인가요?",
+                options: ["가슴 압박 15회 : 인공호흡 1회", "가슴 압박 30회 : 인공호흡 2회", "가슴 압박 50회 : 인공호흡 5회", "가슴 압박 10회 : 인공호흡 10회"],
+                answer: 1,
+                explanation: "CPR 기본 표준 비율은 가슴 압박 30회 후 인공호흡 2회(30:2)입니다."
+            },
+            {
+                q: "인공호흡을 실시하기 직전에 기도를 확보하기 위한 자세는?",
+                options: ["머리를 숙이고 턱을 깬다.", "머리를 뒤로 젖히고 턱을 들어 올린다 (머리젖힘-턱올리기법).", "환자를 옆으로 돌려 눕힌다.", "환자의 목을 좌우로 크게 돌린다."],
+                answer: 1,
+                explanation: "머리를 뒤로 젖히고 턱을 들어 올려 기도가 곧게 열리도록 해야 공기가 폐로 잘 들어갑니다."
+            },
+            {
+                q: "자동심장충격기(AED) 패드를 붙일 때 올바른 위치는 어디인가요?",
+                options: ["양쪽 어깨 위", "오른쪽 빗장뼈 아래와 왼쪽 젖꼭지 아래 옆구리", "배꼽 위와 배꼽 아래", "등 뒤 중앙과 가슴 중앙"],
+                answer: 1,
+                explanation: "패드1은 오른쪽 빗장뼈 아래, 패드2는 왼쪽 젖꼭지 아래 옆구리(겨드랑이 선)에 부착합니다."
+            },
+            {
+                q: "AED가 심장 리듬을 분석하거나 제세동(전기충격)을 가할 때 주의점은?",
+                options: ["환자가 움직이지 않게 꼭 잡는다.", "환자의 입에 인공호흡을 계속한다.", "환자에게서 모든 사람이 떨어져 만지지 않는다.", "환자의 손을 꼭 잡아준다."],
+                answer: 2,
+                explanation: "분석 및 전기 충격 시 환자를 만지면 분석 오류가 발생하거나 구조자에게 전기가 통할 수 있으므로 절대 다여서는 안 됩니다."
+            }
+        ];
+
+        /* ==========================================================================
+           게임 전역 상태 변수
+           ========================================================================== */
+        let currentCardIndex = 0;
+        let puzzleItems = [];
+        let draggedItemIndex = null;
+        let puzzleScore = 0;
+
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        let quizAnswered = false;
+
+        /* ==========================================================================
+           화면 전환 기능
+           ========================================================================== */
+        function hideAllScreens() {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-stage1').classList.add('hidden');
+            document.getElementById('screen-stage2').classList.add('hidden');
+            document.getElementById('screen-stage3').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+        }
+
+        function updateStageBadges(activeStage) {
+            const b1 = document.getElementById('badge-stage1');
+            const b2 = document.getElementById('badge-stage2');
+            const b3 = document.getElementById('badge-stage3');
+
+            b1.className = "px-3 py-1 rounded-full text-xs font-semibold " + (activeStage === 1 ? "bg-purple-300 text-purple-900 font-bold" : "bg-purple-900/50 text-purple-200");
+            b2.className = "px-3 py-1 rounded-full text-xs font-semibold " + (activeStage === 2 ? "bg-purple-300 text-purple-900 font-bold" : "bg-purple-900/50 text-purple-200");
+            b3.className = "px-3 py-1 rounded-full text-xs font-semibold " + (activeStage === 3 ? "bg-purple-300 text-purple-900 font-bold" : "bg-purple-900/50 text-purple-200");
+        }
+
+        function goToHome() {
+            hideAllScreens();
+            document.getElementById('screen-home').classList.remove('hidden');
+            document.getElementById('stage-badges').classList.add('hidden');
+        }
+
+        /* ==========================================================================
+           1단계: 카드 학습 메커니즘
+           ========================================================================== */
+        function startStage1() {
+            hideAllScreens();
+            document.getElementById('stage-badges').classList.remove('hidden');
+            document.getElementById('screen-stage1').classList.remove('hidden');
+            updateStageBadges(1);
+            currentCardIndex = 0;
+            renderCard();
+        }
+
+        function renderCard() {
+            const data = cprSteps[currentCardIndex];
+            document.getElementById('card-counter').innerText = `${currentCardIndex + 1} / ${cprSteps.length}`;
+            document.getElementById('card-emoji').innerText = data.emoji;
+            document.getElementById('card-step').innerText = data.step;
+            document.getElementById('card-title').innerText = data.title;
+            document.getElementById('card-desc').innerText = data.desc;
+            document.getElementById('card-tip').innerText = `💡 팁: ${data.tip}`;
+
+            document.getElementById('btn-prev-card').disabled = (currentCardIndex === 0);
+
+            const nextBtn = document.getElementById('btn-next-card');
+            if (currentCardIndex === cprSteps.length - 1) {
+                nextBtn.innerHTML = '2단계 도전하기 <i class="fa-solid fa-arrow-right ml-1"></i>';
+            } else {
+                nextBtn.innerHTML = '다음 <i class="fa-solid fa-chevron-right ml-1"></i>';
+            }
+        }
+
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                renderCard();
+            }
+        }
+
+        function nextCard() {
+            if (currentCardIndex < cprSteps.length - 1) {
+                currentCardIndex++;
+                renderCard();
+            } else {
+                startStage2();
+            }
+        }
+
+        /* ==========================================================================
+           2단계: 순서 퍼즐 (드래그 앤 드롭)
+           ========================================================================== */
+        function startStage2() {
+            hideAllScreens();
+            document.getElementById('screen-stage2').classList.remove('hidden');
+            updateStageBadges(2);
+            resetPuzzle();
+        }
+
+        function resetPuzzle() {
+            // 복사 후 무작위 셔플
+            puzzleItems = [...cprSteps].sort(() => Math.random() - 0.5);
+            const feedbackEl = document.getElementById('puzzle-feedback');
+            feedbackEl.classList.add('hidden');
+            renderPuzzleList();
+        }
+
+        function renderPuzzleList() {
+            const container = document.getElementById('drag-container');
+            container.innerHTML = '';
+
+            puzzleItems.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'draggable-item bg-purple-50/80 hover:bg-purple-100/80 border-2 border-purple-200 p-3.5 rounded-2xl flex items-center justify-between shadow-sm transition-all';
+                el.draggable = true;
+                el.dataset.index = index;
+
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-slate-400 cursor-grab hover:text-purple-600"><i class="fa-solid fa-grip-vertical text-lg"></i></span>
+                        <span class="text-2xl">${item.emoji}</span>
+                        <span class="font-bold text-slate-800 text-sm md:text-base">${item.title}</span>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 bg-white rounded-lg text-purple-700 border border-purple-200 shadow-xs">
+                        순서 교체 가능
+                    </span>
+                `;
+
+                // Drag Events
+                el.addEventListener('dragstart', handleDragStart);
+                el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragleave', handleDragLeave);
+                el.addEventListener('drop', handleDrop);
+                el.addEventListener('dragend', handleDragEnd);
+
+                container.appendChild(el);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedItemIndex = parseInt(this.dataset.index);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave() {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            const targetIndex = parseInt(this.dataset.index);
+
+            if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
+                // 배열 요소 스왑
+                const temp = puzzleItems[draggedItemIndex];
+                puzzleItems[draggedItemIndex] = puzzleItems[targetIndex];
+                puzzleItems[targetIndex] = temp;
+
+                renderPuzzleList();
+            }
+        }
+
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            draggedItemIndex = null;
+        }
+
+        function checkPuzzleAnswer() {
+            let isCorrect = true;
+            for (let i = 0; i < puzzleItems.length; i++) {
+                if (puzzleItems[i].id !== i + 1) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            const feedback = document.getElementById('puzzle-feedback');
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                puzzleScore = 20; // 퍼즐 완점 20점
+                feedback.className = 'p-4 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-center fade-in';
+                feedback.innerHTML = `🎉 정답입니다! CPR 8대 순서를 완벽하게 정렬했습니다! <br><button onclick="startStage3()" class="mt-3 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition-all">3단계 퀴즈 도전하기 <i class="fa-solid fa-arrow-right"></i></button>`;
+            } else {
+                puzzleScore = 0;
+                feedback.className = 'p-4 rounded-2xl bg-rose-100 text-rose-800 border border-rose-300 font-bold text-center fade-in';
+                feedback.innerHTML = `❌ 올바른 순서가 아닙니다. 단계를 다시 잘 생각해보세요! (힌트: 반응확인 ➔ 신고 ➔ 호흡확인 ➔ 가슴압박)`;
+            }
+        }
+
+        /* ==========================================================================
+           3단계: 객관식 퀴즈 검증 (8문항)
+           ========================================================================== */
+        function startStage3() {
+            hideAllScreens();
+            document.getElementById('screen-stage3').classList.remove('hidden');
+            updateStageBadges(3);
+            currentQuizIndex = 0;
+            quizScore = 0;
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            quizAnswered = false;
+            const q = quizData[currentQuizIndex];
+
+            document.getElementById('quiz-progress').innerText = `Q ${currentQuizIndex + 1} / ${quizData.length}`;
+            document.getElementById('quiz-question').innerText = `${currentQuizIndex + 1}. ${q.q}`;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            document.getElementById('quiz-explanation').classList.add('hidden');
+            document.getElementById('btn-next-quiz').classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50 transition-all font-medium text-slate-700 flex items-center justify-between group';
+                btn.onclick = () => selectQuizOption(idx);
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-purple-100 group-hover:bg-purple-600 group-hover:text-white text-purple-700 font-bold flex items-center justify-center text-sm transition-colors">
+                            ${idx + 1}
+                        </span>
+                        <span class="text-sm md:text-base">${opt}</span>
+                    </div>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectQuizOption(selectedIndex) {
+            if (quizAnswered) return;
+            quizAnswered = true;
+
+            const q = quizData[currentQuizIndex];
+            const isCorrect = (selectedIndex === q.answer);
+            const options = document.getElementById('quiz-options').children;
+
+            // 선택 항목 표시
+            if (isCorrect) {
+                quizScore += 10; // 문항당 10점 (총 80점)
+                options[selectedIndex].className = 'w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold flex items-center justify-between shadow-sm';
+            } else {
+                options[selectedIndex].className = 'w-full text-left p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-900 font-bold flex items-center justify-between shadow-sm';
+                options[q.answer].className = 'w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold flex items-center justify-between shadow-sm';
+            }
+
+            // 모든 버튼 비활성화 스타일
+            for (let btn of options) {
+                btn.onclick = null;
+                btn.classList.remove('hover:border-purple-300', 'hover:bg-purple-50');
+            }
+
+            // 해설 출력
+            const expBlock = document.getElementById('quiz-explanation');
+            const badge = document.getElementById('quiz-result-badge');
+            const expText = document.getElementById('quiz-explanation-text');
+
+            if (isCorrect) {
+                badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span class="text-emerald-700">정답입니다!</span>`;
+            } else {
+                badge.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600"></i> <span class="text-rose-700">오답입니다!</span>`;
+            }
+
+            expText.innerText = q.explanation;
+            expBlock.classList.remove('hidden');
+
+            // 다음 버튼 보이기
+            const nextBtn = document.getElementById('btn-next-quiz');
+            nextBtn.classList.remove('hidden');
+            if (currentQuizIndex === quizData.length - 1) {
+                nextBtn.innerHTML = '결과 확인하기 <i class="fa-solid fa-trophy ml-1"></i>';
+            } else {
+                nextBtn.innerHTML = '다음 문제 <i class="fa-solid fa-arrow-right ml-1"></i>';
+            }
+        }
+
+        function nextQuizQuestion() {
+            if (currentQuizIndex < quizData.length - 1) {
+                currentQuizIndex++;
+                renderQuizQuestion();
+            } else {
+                showResultScreen();
+            }
+        }
+
+        /* ==========================================================================
+           4단계: 최종 결과 화면
+           ========================================================================== */
+        function showResultScreen() {
+            hideAllScreens();
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            const totalScore = puzzleScore + quizScore; // 퍼즐(20점) + 퀴즈(80점) = 100점
+            const scoreEl = document.getElementById('final-score');
+            const titleEl = document.getElementById('final-title');
+            const summaryEl = document.getElementById('final-summary');
+
+            scoreEl.innerText = `${totalScore} / 100점`;
+
+            let badgeTitle = "";
+            if (totalScore === 100) {
+                badgeTitle = "🥇 전설의 CPR 마스터 (100점)";
+                titleEl.className = "inline-block px-4 py-1.5 bg-yellow-200 text-yellow-900 font-bold rounded-full text-sm";
+            } else if (totalScore >= 80) {
+                badgeTitle = "🥈 명예 라이프세이버 (80점 이상)";
+                titleEl.className = "inline-block px-4 py-1.5 bg-purple-200 text-purple-800 font-bold rounded-full text-sm";
+            } else {
+                badgeTitle = "🥉 CPR 수련생 (재도전 권장)";
+                titleEl.className = "inline-block px-4 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-full text-sm";
+            }
+
+            titleEl.innerText = badgeTitle;
+
+            summaryEl.innerHTML = `
+                <div>• 순서 퍼즐 점수: <span class="font-bold text-purple-700">${puzzleScore}점</span> / 20점</div>
+                <div>• 객관식 퀴즈 점수: <span class="font-bold text-purple-700">${quizScore}점</span> / 80점 (${quizScore / 10} / 8문항 맞춤)</div>
+            `;
+        }
+
+        // 초기 시작 로직
+        window.onload = function() {
+            goToHome();
+        };
+    </script>
+</body>
+</html>
